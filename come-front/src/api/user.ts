@@ -14,19 +14,19 @@ export interface User {
 
 // current user
 export const getProfile = async () => {
-  const response = await apiClient.get('/profile');
+  const response = await apiClient.get('/user/profile');
   return response.data.data;
 };
 
 export const updateProfile = async (updates: {username: string; email: string}) => {
-  const response = await apiClient.put('/profile', updates)
+  const response = await apiClient.put('/user/profile', updates)
   return response.data.data;
 }
 
 export const uploadAvatar = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('avatar', file);
-  const response = await apiClient.post('/avatar', formData, {
+  const response = await apiClient.post('/user/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
   return response.data.data;
@@ -38,7 +38,7 @@ export const getUser = async (id: number) => {
 }
 
 export const getUsersBatch = async (ids: number[]) => {
-  const response = await apiClient.get(`/users/batch?ids=${ids.join(',')}`);
+  const response = await apiClient.get(`/user/batch?ids=${ids.join(',')}`);
   return response.data.data;
 };
 

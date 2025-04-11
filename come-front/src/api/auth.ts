@@ -18,11 +18,12 @@ export interface LoginPayload {
 }
 
 export const login = async (data: AuthPayload) => {
-  const response = await apiClient.post('login', data);
-  return response.data.data;
+  const response = await apiClient.post('/user/login', data);
+  // console.log(response);
+  return response.data;
 };
 
 export const register = async (data: RegisterPayload) => {
-  const response = await apiClient.post('register', data);
+  const response = await apiClient.post('/user/register', data);
   return response.data;
 };

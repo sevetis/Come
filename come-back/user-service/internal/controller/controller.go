@@ -1,15 +1,15 @@
 package controller
 
 import (
-	"come-back/model"
-	"come-back/repository"
-	"come-back/util"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"user-service/internal/model"
+	"user-service/internal/repository"
+	"user-service/internal/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,37 +18,21 @@ func GetUser(c *gin.Context) {
 	idStr := c.Param("id")
 	userID, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, Error(http.StatusBadRequest, "Invalid user id"))
+		c.JSON(http.StatusBadRequest, "Invalid user id")
 	}
 	user, err := repository.QueryUser(uint(userID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, Error(http.StatusNotFound, "User not found"))
+		c.JSON(http.StatusNotFound, "User not found")
 		return
 	}
 
-	c.JSON(http.StatusOK, Success(http.StatusOK, user))
-}
-
-func GetProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, Error(http.StatusUnauthorized, "Unauthorized"))
-		return
-	}
-
-	user, err := repository.QueryUser(userID.(uint))
-	if err != nil {
-		c.JSON(http.StatusNotFound, Error(http.StatusNotFound, "User not found"))
-		return
-	}
-
-	c.JSON(http.StatusOK, Success(http.StatusOK, user))
+	c.JSON(http.StatusOK, user)
 }
 
 func GetUsersBatch(c *gin.Context) {
 	idsStr := c.Query("ids")
 	if idsStr == "" {
-		c.JSON(http.StatusBadRequest, Error(http.StatusBadRequest, "ids parameter is required"))
+		c.JSON(http.StatusBadRequest, "ids parameter is required")
 		return
 	}
 
@@ -62,7 +46,7 @@ func GetUsersBatch(c *gin.Context) {
 
 	users, err := repository.QueryUsers(userIDs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Error(http.StatusInternalServerError, "failed to fetch users"))
+		c.JSON(http.StatusInternalServerError, "failed to fetch users")
 		return
 	}
 
@@ -71,18 +55,29 @@ func GetUsersBatch(c *gin.Context) {
 		userMap[user.ID] = user
 	}
 
-	c.JSON(http.StatusOK, Success(http.StatusOK, userMap))
+	c.JSON(http.StatusOK, userMap)
 }
 
-func UploadAvatar(c *gin.Context) {
-	response := uploadAvatar(c)
-	c.JSON(response.Code, response)
+func GetProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	user, err := repository.QueryUser(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusNotFound, "User not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
 func UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, Error(http.StatusUnauthorized, "user not authenticated"))
+		c.JSON(http.StatusUnauthorized, "user not authenticated")
 	}
 
 	var input struct {
@@ -90,7 +85,7 @@ func UpdateProfile(c *gin.Context) {
 		Email    string `json:"email" binding:"required,email"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, Error(http.StatusBadRequest, "invalid request format: "+err.Error()))
+		c.JSON(http.StatusBadRequest, "invalid request format: "+err.Error())
 	}
 
 	updates := map[string]any{
@@ -98,35 +93,35 @@ func UpdateProfile(c *gin.Context) {
 		"email":    input.Email,
 	}
 	if err := repository.UpdateUser(userID.(uint), updates); err != nil {
-		c.JSON(http.StatusInternalServerError, Error(http.StatusInternalServerError, "failed to update profile"))
+		c.JSON(http.StatusInternalServerError, "failed to update profile")
 	}
 
-	c.JSON(http.StatusOK, Success(http.StatusOK, "profile updated successfully"))
+	c.JSON(http.StatusOK, "profile updated successfully")
 }
 
-func uploadAvatar(c *gin.Context) *ServerResponse[string] {
+func UploadAvatar(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		return Error(http.StatusUnauthorized, "user not authenticated")
+		c.JSON(http.StatusUnauthorized, "user not authenticated")
 	}
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		return Error(http.StatusBadRequest, "failed to upload avatar")
+		c.JSON(http.StatusBadRequest, "failed to upload avatar")
 	}
 
 	if file.Size > 5<<20 {
-		return Error(http.StatusBadRequest, "avatar file too large (max 5MB)")
+		c.JSON(http.StatusBadRequest, "avatar file too large (max 5MB)")
 	}
 
 	ext := filepath.Ext(file.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		return Error(http.StatusBadRequest, "only JPG and PNG files are allowed")
+		c.JSON(http.StatusBadRequest, "only JPG and PNG files are allowed")
 	}
 
 	user, err := repository.QueryUser(userID.(uint))
 	if err != nil {
-		return Error(http.StatusInternalServerError, "failed to fetch user profile")
+		c.JSON(http.StatusInternalServerError, "failed to fetch user profile")
 	}
 	oldAvatarPath := user.Avatar
 
@@ -134,16 +129,16 @@ func uploadAvatar(c *gin.Context) *ServerResponse[string] {
 	savePath := filepath.Join("uploads/avatars", filename)
 
 	if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
-		return Error(http.StatusInternalServerError, "server error")
+		c.JSON(http.StatusInternalServerError, "server error")
 	}
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		os.Remove(savePath)
-		return Error(http.StatusInternalServerError, "failed to save avatar")
+		c.JSON(http.StatusInternalServerError, "failed to save avatar")
 	}
 
 	if err := repository.UpdateUser(userID.(uint), map[string]any{"avatar": savePath}); err != nil {
-		return Error(http.StatusInternalServerError, "failed to update avatar")
+		c.JSON(http.StatusInternalServerError, "failed to update avatar")
 	}
 
 	if oldAvatarPath != "" && oldAvatarPath != savePath {
@@ -152,5 +147,5 @@ func uploadAvatar(c *gin.Context) *ServerResponse[string] {
 		}
 	}
 
-	return Success(http.StatusOK, savePath)
+	c.JSON(http.StatusOK, savePath)
 }

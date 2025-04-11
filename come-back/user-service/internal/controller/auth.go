@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"come-back/model"
-	"come-back/repository"
 	"net/http"
 	"os"
 	"time"
+	"user-service/internal/model"
+	"user-service/internal/repository"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -14,37 +14,32 @@ import (
 )
 
 func Register(c *gin.Context) {
-	resp := processRegister(c)
-	c.JSON(resp.Code, resp)
-}
-
-func Login(c *gin.Context) {
-	resp := processLogin(c)
-	c.JSON(resp.Code, resp)
-}
-
-func processRegister(c *gin.Context) *ServerResponse[string] {
 	var regReq struct {
 		Username string `json:"username" binding:"required"`
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&regReq); err != nil {
-		return Error(http.StatusBadRequest, "wrong request format")
+		c.JSON(http.StatusBadRequest, "wrong request format")
+		return
 	}
 	if regReq.Email == "" || regReq.Username == "" || regReq.Password == "" {
-		return Error(http.StatusBadRequest, "missing required registration information")
+		c.JSON(http.StatusBadRequest, "missing required registration information")
+		return
 	}
 
 	if _, err := repository.QueryUserByEmail(regReq.Email); err == nil {
-		return Error(http.StatusConflict, "email already in use")
+		c.JSON(http.StatusConflict, "email already in use")
+		return
 	} else if err != gorm.ErrRecordNotFound {
-		return Error(http.StatusInternalServerError, "database error")
+		c.JSON(http.StatusInternalServerError, "database error: "+err.Error())
+		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(regReq.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return Error(http.StatusInternalServerError, "failed to hash password")
+		c.JSON(http.StatusInternalServerError, "failed to hash password: "+err.Error())
+		return
 	}
 
 	user := model.User{
@@ -54,13 +49,14 @@ func processRegister(c *gin.Context) *ServerResponse[string] {
 	}
 
 	if repository.CreateUser(&user) != nil {
-		return Error(http.StatusInternalServerError, "failed to save user")
+		c.JSON(http.StatusInternalServerError, "failed to save user")
+		return
 	}
 
-	return Success(http.StatusCreated, "register successful")
+	c.JSON(http.StatusCreated, "register successful")
 }
 
-func processLogin(c *gin.Context) *ServerResponse[string] {
+func Login(c *gin.Context) {
 	var loginReq struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -69,11 +65,13 @@ func processLogin(c *gin.Context) *ServerResponse[string] {
 
 	user, err := repository.QueryUserByEmail(loginReq.Email)
 	if err != nil {
-		return Error(http.StatusBadRequest, "account not exist")
+		c.JSON(http.StatusBadRequest, "account not exist")
+		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password)); err != nil {
-		return Error(http.StatusBadRequest, "wrong password")
+		c.JSON(http.StatusBadRequest, "wrong password")
+		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -83,5 +81,5 @@ func processLogin(c *gin.Context) *ServerResponse[string] {
 	})
 	tokenString, _ := token.SignedString([]byte(os.Getenv("JWT_SECERT")))
 
-	return Success(http.StatusAccepted, tokenString)
+	c.JSON(http.StatusAccepted, tokenString)
 }
