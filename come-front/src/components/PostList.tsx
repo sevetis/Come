@@ -28,19 +28,33 @@ const PostList = () => {
   const fetchPostsAndUsers = async (currentPage: number) => {
     try {
       const postData = await getPostsPaginated(currentPage, pageSize);
+      console.log("postData", postData);
+
       const postsList: Post[] = postData.posts;
+
+      console.log("AAAAA", postsList.length);
+
       if (postsList.length === 0)
         return
+
+      console.log("AAAAA");
+
       setTotal(postData.total);
+
+      console.log("AAAAA");
 
       const authorIds = [...new Set(postsList.map((post) => post.authorId))];
       const usersMap = await getUsersBatch(authorIds);
+
+      console.log("BBBB");
 
       const postsPreview = postsList.map((post) => ({
         ...post,
         authorUsername: usersMap[post.authorId]?.username || "Unknown",
         avatar: usersMap[post.authorId]?.avatar || "",
       }));
+
+      console.log("AAAA");
 
       setPosts(postsPreview);
     } catch (error) {

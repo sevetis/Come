@@ -27,7 +27,6 @@ func main() {
 	{
 		public := api.Group("")
 		{
-
 			public.GET("/posts", controller.GetPostsPaginated)
 			public.GET("/post/:id", controller.GetPost)
 			public.GET("/post/:id/comments", controller.GetPostComments)
@@ -44,9 +43,6 @@ func main() {
 
 		admin := api.Group("/admin").Use(middleware.AdminAuth())
 		{
-			admin.GET("/users", controller.GetAllUsers)
-			admin.PUT("/users/:id/ban", controller.BanUser)
-			admin.PUT("/users/:id/promote", controller.PromoteToAdmin)
 			admin.DELETE("/post/:id", controller.DeletePostAdmin)
 			admin.DELETE("/comments/:id", controller.DeleteCommentAdmin)
 			admin.GET("/dashboard", controller.AdminDashboard)

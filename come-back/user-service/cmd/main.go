@@ -40,6 +40,13 @@ func main() {
 			auth.PUT("/profile", controller.UpdateProfile)
 			auth.POST("/avatar", controller.UploadAvatar)
 		}
+
+		admin := api.Group("/admin").Use(controller.AdminAuth())
+		{
+			admin.GET("/users", controller.GetAllUsers)
+			admin.PUT("/users/:id/ban", controller.BanUser)
+			admin.PUT("/users/:id/promote", controller.PromoteToAdmin)
+		}
 	}
 
 	port := os.Getenv("USER_PORT")
