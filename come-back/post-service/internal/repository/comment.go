@@ -1,6 +1,6 @@
 package repository
 
-import "come-back/model"
+import "post-service/internal/model"
 
 func QueryAllComments(postID uint) ([]model.Comment, error) {
 	var comments []model.Comment

@@ -1,6 +1,6 @@
 package repository
 
-import "come-back/model"
+import "post-service/internal/model"
 
 func QueryAllPosts() ([]model.Post, error) {
 	var posts []model.Post

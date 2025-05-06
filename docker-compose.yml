@@ -5,25 +5,9 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
-
-  backend:
-    build: ./come-back
-    container_name: come-back
-    restart: always
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./.env:/app/.env
-      - ./uploads:/app/uploads
-    environment:
-      - MYSQL_DSN=${MYSQL_DSN}
-      - REDIS_ADDR=${REDIS_ADDR}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - user-service
+      - post-service
+      - chat-service
 
   user-service:
     build: ./come-back/user-service
@@ -37,6 +21,22 @@ services:
       - MYSQL_DSN=${MYSQL_DSN}
       - REDIS_ADDR=${REDIS_ADDR}
       - USER_PORT=8081
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  post-service:
+    build: ./come-back/post-service
+    container_name: post-service
+    restart: always
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./.env:/app/.env
+    environment:
+      - MYSQL_DSN=${MYSQL_DSN}
+      - REDIS_ADDR=${REDIS_ADDR}
+      - POST_PORT=8082
     depends_on:
       mysql:
         condition: service_healthy

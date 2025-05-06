@@ -1,9 +1,9 @@
-package middleware
+package controller
 
 import (
-	"come-back/model"
 	"net/http"
 	"os"
+	"post-service/internal/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
