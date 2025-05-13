@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"chat-service/internal/client"
 	"chat-service/internal/model"
 
 	"github.com/gin-gonic/gin"
@@ -16,17 +17,11 @@ import (
 )
 
 type ChatController struct {
-	UserProvider model.UserProvider
+	UserClient client.UserClient
 }
 
-func NewChatController(userProvider model.UserProvider) *ChatController {
-	return &ChatController{UserProvider: userProvider}
-}
-
-type HTTPUserProvider struct{}
-
-func (h *HTTPUserProvider) GetUserByID(id uint) (model.User, error) {
-	return model.User{ID: id, Username: "temp_user"}, nil
+func NewChatController(userClinet client.UserClient) *ChatController {
+	return &ChatController{UserClient: userClinet}
 }
 
 func init() {
@@ -38,7 +33,7 @@ func (cc *ChatController) HandleChat(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if exists {
 		var err error
-		user, err = cc.UserProvider.GetUserByID(userID.(uint))
+		user, err = cc.UserClient.GetUserByID(userID.(uint))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
 			return

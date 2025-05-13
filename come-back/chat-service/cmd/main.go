@@ -1,8 +1,10 @@
 package main
 
 import (
+	"chat-service/internal/client"
 	"chat-service/internal/controller"
 	"chat-service/internal/repository"
+	"fmt"
 	"log"
 	"os"
 
@@ -18,8 +20,9 @@ func main() {
 	repository.InitDB(os.Getenv("MYSQL_DSN"))
 	controller.InitRedis()
 
-	userProvider := &controller.HTTPUserProvider{}
-	chatCtrl := controller.NewChatController(userProvider)
+	chatCtrl := controller.NewChatController(
+		*client.NewUserClient(fmt.Sprintf("http://user-service:%s", os.Getenv("USER_PORT"))),
+	)
 
 	router := gin.Default()
 	router.GET("/api/history", chatCtrl.GetChatHistory)
